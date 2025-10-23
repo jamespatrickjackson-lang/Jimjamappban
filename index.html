@@ -1,0 +1,2887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Fuji Navigation Mode - Rev 5.8.7 Clean</title>
+    <style>
+        /* ═══════════════════════════════════════════════════════════════════
+           BASE STYLES
+           ═══════════════════════════════════════════════════════════════════ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow: hidden;
+            background: #f5f5f0;
+            touch-action: none;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            cursor: crosshair;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           CONTROLS INFO PANEL (Top Left)
+           ═══════════════════════════════════════════════════════════════════ */
+        #controls-info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+            user-select: none;
+            max-width: 320px;
+            z-index: 10;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .logo svg {
+            width: 36px;
+            height: 42px;
+            fill: #007AFF;
+        }
+
+        .logo-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+
+        #controls-info h3 {
+            margin: 15px 0 10px 0;
+            font-size: 13px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ctrl-icon {
+            background: #666;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .control-item {
+            margin: 6px 0;
+            font-size: 12px;
+            color: #333;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .key {
+            font-weight: 600;
+            color: #007AFF;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           VERSION DISPLAY (Bottom Right)
+           ═══════════════════════════════════════════════════════════════════ */
+        #version {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: #999;
+            font-size: 11px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           DEBUG INFO PANEL (Top Right)
+           ═══════════════════════════════════════════════════════════════════ */
+        #debug-info {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 12px;
+            pointer-events: none;
+            user-select: none;
+            z-index: 10;
+        }
+
+        .debug-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+            gap: 20px;
+        }
+
+        .debug-label {
+            color: #666;
+            text-align: left;
+        }
+
+        .debug-value {
+            color: #1d1d1f;
+            text-align: right;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           POSITION ADJUSTMENT PANEL (Left Side)
+           ═══════════════════════════════════════════════════════════════════ */
+        #position-panel {
+            position: fixed;
+            top: 50%;
+            left: 20px;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(20px);
+            z-index: 100;
+            min-width: 280px;
+            display: none;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .panel-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+
+        .model-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .model-btn {
+            flex: 1;
+            padding: 10px 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.05);
+            color: #666;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .model-btn.active {
+            background: #007AFF;
+            color: white;
+        }
+
+        .axis-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .axis-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .axis-label {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .axis-x { background: #FF3B30; }
+        .axis-y { background: #34C759; }
+        .axis-z { background: #007AFF; }
+
+        .axis-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .axis-input:focus {
+            outline: none;
+            border-color: #007AFF;
+        }
+
+        .reset-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.05);
+            color: #666;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .reset-btn:hover {
+            background: rgba(0, 0, 0, 0.08);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           VARIABLE ADJUSTMENT PANEL (Right Side)
+           ═══════════════════════════════════════════════════════════════════ */
+        #variable-panel {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.96);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(20px);
+            z-index: 100;
+            min-width: 340px;
+            max-width: 360px;
+            max-height: 80vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: none;
+            scrollbar-width: thin;
+        }
+
+        .object-category {
+            margin-bottom: 15px;
+        }
+
+        .category-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1d1d1f;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .object-btn {
+            width: 100%;
+            padding: 10px 12px;
+            margin-bottom: 5px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.05);
+            color: #666;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+
+        .object-btn:hover {
+            background: rgba(0, 0, 0, 0.08);
+        }
+
+        .object-btn.active {
+            background: #007AFF;
+            color: white;
+        }
+
+        .variable-controls {
+            margin-top: 15px;
+        }
+
+        .variable-group {
+            margin-bottom: 24px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .variable-group:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+
+        .group-header {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .variable-control {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            gap: 16px;
+            padding: 2px 0;
+        }
+
+        .variable-control:last-child {
+            margin-bottom: 0;
+        }
+
+        .variable-label {
+            font-size: 12px;
+            color: #333;
+            flex: 0 0 auto;
+            min-width: 110px;
+            font-weight: 500;
+        }
+
+        .variable-input {
+            width: 80px;
+            padding: 6px 8px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'SF Mono', Monaco, monospace;
+            transition: border-color 0.2s ease;
+        }
+
+        .variable-input:focus {
+            outline: none;
+            border-color: #007AFF;
+        }
+
+        .color-input {
+            width: 60px;
+            height: 30px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .color-input:hover {
+            border-color: #007AFF;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .slider {
+            flex: 1;
+            height: 3px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: linear-gradient(to right, #d1d1d6 0%, #d1d1d6 100%);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border: 2px solid #007AFF;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+        }
+
+        .slider::-webkit-slider-thumb:active {
+            transform: scale(1.05);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: white;
+            border: 2px solid #007AFF;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .slider::-moz-range-thumb:hover {
+            transform: scale(1.15);
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+        }
+
+        .slider::-moz-range-thumb:active {
+            transform: scale(1.05);
+        }
+
+        .slider-value {
+            font-size: 11px;
+            color: #666;
+            font-family: 'SF Mono', Monaco, monospace;
+            min-width: 42px;
+            text-align: right;
+            font-weight: 500;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           TOGGLE SWITCH (Apple-style iOS)
+           ═══════════════════════════════════════════════════════════════════ */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 51px;
+            height: 31px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #e9e9eb;
+            transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 15.5px;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 27px;
+            width: 27px;
+            left: 2px;
+            bottom: 1px;
+            background-color: white;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 50%;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16), 0 3px 1px rgba(0, 0, 0, 0.1);
+        }
+
+        .toggle-slider:hover {
+            background-color: #e0e0e5;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #34C759;
+            border-color: #34C759;
+        }
+
+        input:checked + .toggle-slider:hover {
+            background-color: #30b350;
+        }
+
+        input:focus + .toggle-slider {
+            box-shadow: 0 0 0 4px rgba(52, 199, 89, 0.1);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        input:active + .toggle-slider:before {
+            width: 34px;
+        }
+
+        input:checked:active + .toggle-slider:before {
+            transform: translateX(14px);
+        }
+
+        .toggle-switch:active .toggle-slider {
+            outline: none;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           POPUP LABELS (Apple-style callouts)
+           ═══════════════════════════════════════════════════════════════════ */
+        .object-label {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            color: #000;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(12px);
+            display: none;
+            transform: translate(-50%, -100%);
+            margin-top: -20px;
+            transition: left 0.08s ease-out, top 0.08s ease-out;
+        }
+
+        .object-label::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 10px solid rgba(255, 255, 255, 0.95);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           DOCK CONTAINER (Bottom Center)
+           ═══════════════════════════════════════════════════════════════════ */
+        .dock-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            padding: 12px 18px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+            display: flex;
+            gap: 14px;
+            z-index: 100;
+        }
+
+        .dock-button {
+            width: 56px;
+            height: 56px;
+            border: none;
+            border-radius: 13px;
+            background: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+        }
+
+        .dock-button::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 45%;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0) 100%);
+            border-radius: 13px 13px 0 0;
+            pointer-events: none;
+        }
+
+        .dock-button svg {
+            width: 32px;
+            height: 32px;
+            z-index: 1;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+        }
+
+        .dock-button:hover {
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+        }
+
+        .dock-button:active {
+            transform: translateY(-2px) scale(0.98);
+        }
+
+        .dock-button.active {
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5), 0 2px 8px rgba(0, 0, 0, 0.12);
+        }
+
+        .btn-purple { background: #BF5AF2; }
+        .btn-red { background: #FF3B30; }
+        .btn-blue { background: #007AFF; }
+        .btn-yellow { background: #FFCC00; }
+        .btn-position { background: #5AC8FA; }
+        .btn-variable { background: #FF9500; }
+
+        /* Loading indicator */
+        #loading-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007AFF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Custom scrollbar for variable panel */
+        #variable-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #variable-panel::-webkit-scrollbar-track {
+            background: transparent;
+            margin: 8px 0;
+        }
+
+        #variable-panel::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+            transition: background 0.2s ease;
+        }
+
+        #variable-panel::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.35);
+        }
+
+        #variable-panel {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div id="loading-indicator">
+    <div class="loading-spinner"></div>
+    <div>Loading 3D Models...</div>
+</div>
+<!-- Position Adjustment Panel -->
+<div id="position-panel">
+    <div class="panel-header">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L14 7H19L15 10L17 15L12 12L7 15L9 10L5 7H10L12 2Z" fill="#007AFF"/>
+            <path d="M2 17L7 12L2 7L7 7L12 2L17 7L22 7L17 12L22 17L17 17L12 22L7 17L2 17Z" fill="#007AFF"/>
+        </svg>
+        <h2>Position Adjustment</h2>
+    </div>
+
+    <div class="model-selector">
+        <button class="model-btn active" data-model="gums">Gums</button>
+        <button class="model-btn" data-model="teeth">Teeth</button>
+        <button class="model-btn" data-model="both">Both</button>
+    </div>
+
+    <div class="axis-controls">
+        <div class="axis-control">
+            <div class="axis-label axis-x">X</div>
+            <input type="number" class="axis-input" id="pos-x" value="0.000" step="0.001" data-axis="x">
+        </div>
+        <div class="axis-control">
+            <div class="axis-label axis-y">Y</div>
+            <input type="number" class="axis-input" id="pos-y" value="0.000" step="0.001" data-axis="y">
+        </div>
+        <div class="axis-control">
+            <div class="axis-label axis-z">Z</div>
+            <input type="number" class="axis-input" id="pos-z" value="0.000" step="0.001" data-axis="z">
+        </div>
+    </div>
+
+    <button class="reset-btn" id="reset-position">Reset Position</button>
+</div>
+<!-- Variable Adjustment Panel -->
+<div id="variable-panel">
+    <div class="panel-header">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 8C13.1 8 14 7.1 14 6C14 4.9 13.1 4 12 4C10.9 4 10 4.9 10 6C10 7.1 10.9 8 12 8ZM12 10C10.9 10 10 10.9 10 12C10 13.1 10.9 14 12 14C13.1 14 14 13.1 14 12C14 10.9 13.1 10 12 10ZM12 16C10.9 16 10 16.9 10 18C10 19.1 10.9 20 12 20C13.1 20 14 19.1 14 18C14 16.9 13.1 16 12 16Z" fill="#FF9500"/>
+        </svg>
+        <h2>Variable Adjustment</h2>
+    </div>
+
+    <div class="object-category">
+        <div class="category-header">Imported Models</div>
+        <button class="object-btn" data-object="gums-model">Gums Model</button>
+        <button class="object-btn" data-object="teeth-model">Teeth Model</button>
+    </div>
+
+    <div class="object-category">
+        <div class="category-header">Placeholder Objects</div>
+        <button class="object-btn" data-object="tooth-objects">Tooth Objects</button>
+        <button class="object-btn" data-object="tooth-labels">Tooth Labels</button>
+        <button class="object-btn" data-object="target-group">Target Group</button>
+    </div>
+
+    <div class="object-category">
+        <div class="category-header">Markers</div>
+        <button class="object-btn" data-object="purple-block">Purple Block</button>
+        <button class="object-btn" data-object="red-sphere">Red Sphere</button>
+    </div>
+
+    <div class="object-category">
+        <div class="category-header">Environment</div>
+        <button class="object-btn" data-object="backdrop-sphere">Backdrop Sphere</button>
+        <button class="object-btn" data-object="floor-plane">Floor Plane</button>
+        <button class="object-btn" data-object="grid-helper">Grid Helper</button>
+        <button class="object-btn" data-object="rail-path">Rail Path</button>
+        <button class="object-btn" data-object="center-point">Center Point</button>
+    </div>
+
+    <div id="variable-controls" class="variable-controls">
+        <!-- Variable controls will be populated here dynamically -->
+    </div>
+</div>
+<div id="controls-info">
+    <div class="logo">
+        <svg viewBox="0 0 48.7 57" xmlns="http://www.w3.org/2000/svg" width="48.7" height="57">
+            <path d="M24.35008,0C10.90184,0-.00002,10.90186-.00002,24.34998-.00002,32.41993,3.92845,39.5694,9.97435,44.00001H-.00002v13h13v-11.10742c3.38965,1.78967,7.25024,2.80743,11.3501,2.80743,13.448,0,24.34985-10.90186,24.34985-24.35004S37.79808,0,24.35008,0ZM24.35008,37.70502c-7.37598,0-13.35498-5.97925-13.35498-13.35504s5.979-13.35498,13.35498-13.35498,13.35498,5.97925,13.35498,13.35498-5.97925,13.35504-13.35498,13.35504Z"/>
+        </svg>
+        <span class="logo-text">Fuji Navigation Mode</span>
+    </div>
+    <h3><span class="ctrl-icon">CTRL</span></h3>
+    <div class="control-item"><span class="key">DRAG LEFT/RIGHT</span> - Move along rail</div>
+    <div class="control-item"><span class="key">DRAG UP/DOWN</span> - Orbit around path</div>
+    <div class="control-item"><span class="key">SCROLL / PINCH</span> - Zoom in/out</div>
+    <div class="control-item"><span class="key">CLICK OBJECTS</span> - Show/hide labels</div>
+    <div class="control-item"><span class="key">P KEY</span> - Toggle position panel</div>
+    <div class="control-item"><span class="key">M KEY</span> - Toggle variable panel</div>
+</div>
+<div id="version">Rev 5.8.7 Clean - Variable Adjustment Panel</div>
+<div id="debug-info">
+    <div class="debug-row">
+        <span class="debug-label">Orbit:</span>
+        <span class="debug-value" id="orbit-display">160°</span>
+    </div>
+    <div class="debug-row">
+        <span class="debug-label">Path:</span>
+        <span class="debug-value" id="path-display">0.00</span>
+    </div>
+    <div class="debug-row">
+        <span class="debug-label">Zoom:</span>
+        <span class="debug-value" id="zoom-display">5.00</span>
+    </div>
+</div>
+<div id="red-sphere-label" class="object-label">Carie</div>
+<div id="purple-block-label" class="object-label">Restoration</div>
+<div class="dock-container">
+    <button id="position-btn" class="dock-button btn-position" title="Toggle Position Panel (P)">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
+            <path d="M12 2L14 7H19L15 10L17 15L12 12L7 15L9 10L5 7H10L12 2Z"/>
+            <path d="M2 17L7 12L2 7L7 7L12 2L17 7L22 7L17 12L22 17L17 17L12 22L7 17L2 17Z"/>
+        </svg>
+    </button>
+    <button id="variable-btn" class="dock-button btn-variable" title="Toggle Variable Panel (M)">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
+            <path d="M12 8C13.1 8 14 7.1 14 6C14 4.9 13.1 4 12 4C10.9 4 10 4.9 10 6C10 7.1 10.9 8 12 8ZM12 10C10.9 10 10 10.9 10 12C10 13.1 10.9 14 12 14C13.1 14 14 13.1 14 12C14 10.9 13.1 10 12 10ZM12 16C10.9 16 10 16.9 10 18C10 19.1 10.9 20 12 20C13.1 20 14 19.1 14 18C14 16.9 13.1 16 12 16Z"/>
+        </svg>
+    </button>
+    <button id="purple-btn" class="dock-button btn-purple" title="Toggle Restoration Marker">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+        </svg>
+    </button>
+    <button id="red-btn" class="dock-button btn-red" title="Toggle Carie Marker">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
+            <circle cx="12" cy="12" r="9"/>
+        </svg>
+    </button>
+    <button id="labels-btn" class="dock-button btn-blue" title="Toggle Tooth Labels">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
+            <text x="12" y="17" text-anchor="middle" font-size="14" font-weight="bold">32</text>
+        </svg>
+    </button>
+    <button id="grid-btn" class="dock-button btn-yellow" title="Toggle Grid">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <line x1="12" y1="4" x2="12" y2="20"/>
+            <line x1="4" y1="12" x2="20" y2="12"/>
+            <rect x="4" y="4" width="16" height="16" rx="1"/>
+        </svg>
+    </button>
+</div>
+<!-- Three.js library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- DRACOLoader for decompressing Draco-compressed GLB files -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+<!-- GLTFLoader for loading .glb files -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+console.log('🚀 Fuji Navigation Mode - Rev 5.8.7 Clean starting...');
+console.log('🔧 MODIFICATIONS: Cleaned up variable adjustment panel with improved toggle switches');
+
+// Scene setup
+const scene = new THREE.Scene();
+scene.background = null;
+
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+// Store references to objects for variable adjustment
+let gumsModel = null;
+let teethModel = null;
+let targetGroup = new THREE.Group();
+let toothLabelsGroup = new THREE.Group();
+let purpleBlock = null;
+let redSphere = null;
+let backdropSphere = null;
+let floor = null;
+let gridHelper = null;
+let pathTube = null;
+let startCap = null;
+let endCap = null;
+let centerPoint = null;
+
+// Label properties
+let labelTextColor = '#ffffff';
+let labelBgColor = '#000000';
+let labelBgOpacity = 0.7;
+let labelTextSize = 60;
+
+// Store original values for reset functionality
+const originalValues = {};
+
+// Backdrop sphere
+const backdropGeometry = new THREE.SphereGeometry(150, 32, 32);
+const backdropMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    side: THREE.BackSide,
+    fog: false
+});
+backdropSphere = new THREE.Mesh(backdropGeometry, backdropMaterial);
+backdropSphere.renderOrder = -1;
+scene.add(backdropSphere);
+console.log('✅ Backdrop sphere created');
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+scene.add(ambientLight);
+
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
+directionalLight.position.set(5, 10, 5);
+directionalLight.castShadow = true;
+directionalLight.shadow.mapSize.width = 2048;
+directionalLight.shadow.mapSize.height = 2048;
+directionalLight.shadow.camera.near = 0.5;
+directionalLight.shadow.camera.far = 1000;
+directionalLight.shadow.camera.left = -250;
+directionalLight.shadow.camera.right = 250;
+directionalLight.shadow.camera.top = 250;
+directionalLight.shadow.camera.bottom = -250;
+directionalLight.shadow.bias = -0.0001;
+scene.add(directionalLight);
+
+// Enhanced path creation with better positioning
+function createUShapedPath(width, depth, height = 0) {
+    const points = [];
+    const segments = 50;
+
+    for (let i = 0; i <= segments; i++) {
+        const t = i / segments;
+        const angle = Math.PI * t;
+        const x = width * Math.cos(angle);
+        const z = -depth * Math.sin(angle) + depth * 0.5;
+        const y = height;
+        points.push(new THREE.Vector3(x, y, z));
+    }
+
+    return new THREE.CatmullRomCurve3(points);
+}
+
+// Create initial spline with smaller dimensions to match tooth model
+const initialSplineWidth = 1.5;
+const initialSplineDepth = 2.5;
+let railPath = createUShapedPath(initialSplineWidth, initialSplineDepth);
+
+// Rail visualization
+function createRailVisualization() {
+    // Remove existing rail if it exists
+    if (pathTube) scene.remove(pathTube);
+    if (startCap) scene.remove(startCap);
+    if (endCap) scene.remove(endCap);
+
+    // Create new tube geometry
+    const tubeGeometry = new THREE.TubeGeometry(railPath, 100, 0.03, 8, false);
+    const tubeMaterial = new THREE.MeshPhongMaterial({ color: 0xff69b4, shininess: 30 });
+    pathTube = new THREE.Mesh(tubeGeometry, tubeMaterial);
+    pathTube.castShadow = true;
+    pathTube.visible = false; // HIDE THE PINK SPLINE LINE
+    scene.add(pathTube);
+
+    // End caps
+    const endCapGeometry = new THREE.SphereGeometry(0.05, 16, 16);
+    const endCapMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
+
+    startCap = new THREE.Mesh(endCapGeometry, endCapMaterial);
+    startCap.position.copy(railPath.getPoint(0));
+    startCap.castShadow = true;
+    startCap.visible = false; // Hide end caps too
+    scene.add(startCap);
+
+    endCap = new THREE.Mesh(endCapGeometry, endCapMaterial);
+    endCap.position.copy(railPath.getPoint(1));
+    endCap.castShadow = true;
+    endCap.visible = false; // Hide end caps too
+    scene.add(endCap);
+}
+
+// Create initial rail
+createRailVisualization();
+
+// Tooth ratios (PRESERVED FROM REV 5.6)
+const toothRatios = [
+    { type: 'M3', ratio: 10.5, height: 0.75, number: 32 },
+    { type: 'M2', ratio: 10.5, height: 0.75, number: 31 },
+    { type: 'M1', ratio: 11.5, height: 0.80, number: 30 },
+    { type: 'P2', ratio: 7.5, height: 0.70, number: 29 },
+    { type: 'P1', ratio: 7.5, height: 0.72, number: 28 },
+    { type: 'C', ratio: 7.5, height: 0.90, number: 27 },
+    { type: 'I2', ratio: 6.5, height: 0.68, number: 26 },
+    { type: 'I1', ratio: 5.5, height: 0.65, number: 25 },
+    { type: 'I1', ratio: 5.5, height: 0.65, number: 24 },
+    { type: 'I2', ratio: 6.5, height: 0.68, number: 23 },
+    { type: 'C', ratio: 7.5, height: 0.90, number: 22 },
+    { type: 'P1', ratio: 7.5, height: 0.72, number: 21 },
+    { type: 'P2', ratio: 7.5, height: 0.70, number: 20 },
+    { type: 'M1', ratio: 11.5, height: 0.80, number: 19 },
+    { type: 'M2', ratio: 10.5, height: 0.75, number: 18 },
+    { type: 'M3', ratio: 10.5, height: 0.75, number: 17 }
+];
+
+// Calculate tooth widths
+const gapSize = 0.01;
+let totalArcLength = railPath.getLength();
+const numGaps = toothRatios.length - 1;
+const totalGapSpace = numGaps * gapSize;
+const availableToothSpace = totalArcLength - totalGapSpace;
+const totalRatios = toothRatios.reduce((sum, tooth) => sum + tooth.ratio, 0);
+const toothWidths = toothRatios.map(tooth => (tooth.ratio / totalRatios) * availableToothSpace);
+
+let currentArcPosition = 0;
+
+// Variables to store marker positions for later adjustment
+let originalTooth31Position = null;
+let originalTooth31Height = null;
+
+// CREATE TEETH (PRESERVED FROM REV 5.6)
+for (let i = 0; i < toothRatios.length; i++) {
+    const toothWidth = toothWidths[i];
+    const toothHeight = toothRatios[i].height;
+
+    const tCenter = (currentArcPosition + toothWidth / 2) / totalArcLength;
+    const centerPos = railPath.getPoint(tCenter);
+    const tangent = railPath.getTangent(tCenter).normalize();
+
+    // Create tooth
+    const toothGeometry = new THREE.BoxGeometry(0.25, toothHeight, toothWidth);
+    const toothMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.60,
+        transmission: 0,
+        roughness: 0.1,
+        metalness: 0,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.1,
+        reflectivity: 0.5,
+        ior: 0.98,
+        specularIntensity: 1.0,
+        envMapIntensity: 1.0,
+        side: THREE.DoubleSide
+    });
+    const tooth = new THREE.Mesh(toothGeometry, toothMaterial);
+    tooth.castShadow = true;
+
+    // Add wireframe edges
+    const edgesGeometry = new THREE.EdgesGeometry(toothGeometry);
+    const edgesMaterial = new THREE.LineBasicMaterial({ color: 0xcccccc, linewidth: 1 });
+    const wireframe = new THREE.LineSegments(edgesGeometry, edgesMaterial);
+    tooth.add(wireframe);
+
+    tooth.position.copy(centerPos);
+
+    const maxHeight = 0.90;
+    const referenceBottom = -maxHeight / 2;
+    tooth.position.y = referenceBottom + toothHeight / 2;
+
+    const defaultDirection = new THREE.Vector3(0, 0, 1);
+    const quaternion = new THREE.Quaternion();
+    quaternion.setFromUnitVectors(defaultDirection, tangent);
+    tooth.quaternion.copy(quaternion);
+
+    const outwardAtCenter = new THREE.Vector3()
+        .subVectors(centerPos, new THREE.Vector3(0, 0, 0))
+        .normalize();
+    const outwardPerpToTangent = new THREE.Vector3()
+        .copy(outwardAtCenter)
+        .addScaledVector(tangent, -outwardAtCenter.dot(tangent))
+        .normalize();
+
+    const toothX = new THREE.Vector3(1, 0, 0).applyQuaternion(quaternion);
+    const angle = Math.atan2(
+        toothX.clone().cross(outwardPerpToTangent).dot(tangent),
+        toothX.dot(outwardPerpToTangent)
+    );
+    tooth.rotateZ(angle);
+
+    targetGroup.add(tooth);
+
+    // Add markers to tooth #31
+    if (i === 1) {
+        // Store original position for later adjustment
+        originalTooth31Position = centerPos.clone();
+        originalTooth31Height = toothHeight;
+
+        const blockHeight = toothHeight / 10;
+        const purpleBlockGeometry = new THREE.BoxGeometry(0.25, blockHeight, toothWidth);
+        const purpleBlockMaterial = new THREE.MeshPhongMaterial({ color: 0xBF5AF2 });
+        purpleBlock = new THREE.Mesh(purpleBlockGeometry, purpleBlockMaterial);
+        purpleBlock.castShadow = true;
+        purpleBlock.position.copy(tooth.position);
+        purpleBlock.position.y = tooth.position.y + toothHeight / 2 + blockHeight / 2;
+        purpleBlock.quaternion.copy(tooth.quaternion);
+        purpleBlock.name = 'purpleBlock';
+        scene.add(purpleBlock);
+
+        const redSphereGeometry = new THREE.SphereGeometry(0.08, 16, 16);
+        const redSphereMaterial = new THREE.MeshPhongMaterial({ color: 0xFF3B30 });
+        redSphere = new THREE.Mesh(redSphereGeometry, redSphereMaterial);
+        redSphere.castShadow = true;
+        redSphere.position.copy(tooth.position);
+        redSphere.name = 'redSphere';
+        scene.add(redSphere);
+    }
+
+    currentArcPosition += toothWidth + gapSize;
+}
+
+// Create tooth labels
+function createToothLabels() {
+    toothLabelsGroup.children = [];
+
+    for (let i = 0; i < toothRatios.length; i++) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+
+        const context = canvas.getContext('2d');
+
+        const bgThreeColor = new THREE.Color(labelBgColor);
+        context.fillStyle = `rgba(${Math.round(bgThreeColor.r * 255)}, ${Math.round(bgThreeColor.g * 255)}, ${Math.round(bgThreeColor.b * 255)}, ${labelBgOpacity})`;
+        context.fillRect(0, 0, 128, 128);
+
+        context.font = `Bold ${labelTextSize}px Arial`;
+        context.fillStyle = labelTextColor;
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(toothRatios[i].number.toString(), 64, 64);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+        const sprite = new THREE.Sprite(spriteMaterial);
+
+        sprite.position.copy(targetGroup.children[i].position);
+        sprite.position.y += targetGroup.children[i].geometry.parameters.height / 2 + 0.15;
+        sprite.scale.set(0.3, 0.3, 1);
+
+        toothLabelsGroup.add(sprite);
+    }
+}
+
+createToothLabels();
+scene.add(targetGroup);
+scene.add(toothLabelsGroup);
+toothLabelsGroup.visible = false;
+
+console.log('✅ All placeholder teeth created successfully');
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   CRITICAL FIX #1: DRACO LOADER SETUP
+   ═══════════════════════════════════════════════════════════════════════════════ */
+console.log('🔧 Initializing DRACOLoader...');
+const dracoLoader = new THREE.DRACOLoader();
+dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+dracoLoader.setDecoderConfig({ type: 'js' });
+console.log('✅ DRACOLoader configured with Google CDN decoders');
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   LOADING MANAGER SETUP
+   ═══════════════════════════════════════════════════════════════════════════════ */
+const loadingManager = new THREE.LoadingManager();
+
+loadingManager.onStart = function(url, itemsLoaded, itemsTotal) {
+    console.log('📦 Loading started...');
+    document.getElementById('loading-indicator').style.display = 'flex';
+};
+
+loadingManager.onProgress = function(url, itemsLoaded, itemsTotal) {
+    const progress = Math.round((itemsLoaded / itemsTotal) * 100);
+    console.log(`📊 Progress: ${progress}% (${itemsLoaded}/${itemsTotal}) - ${url}`);
+};
+
+loadingManager.onLoad = function() {
+    console.log('✅ All files finished loading!');
+    document.getElementById('loading-indicator').style.display = 'none';
+};
+
+loadingManager.onError = function(url) {
+    console.log('❌ Error loading:', url);
+    document.getElementById('loading-indicator').style.display = 'none';
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   GLTF LOADER SETUP WITH DRACO SUPPORT
+   ═══════════════════════════════════════════════════════════════════════════════ */
+const loader = new THREE.GLTFLoader(loadingManager);
+loader.setDRACOLoader(dracoLoader);
+console.log('✅ GLTFLoader configured with DRACO support');
+
+const glbModelsGroup = new THREE.Group();
+scene.add(glbModelsGroup);
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   CRITICAL FIX #2: JSDELIVR CDN URLS
+   ═══════════════════════════════════════════════════════════════════════════════ */
+console.log('🌐 Loading GLB models from jsDelivr CDN...');
+const GUMS_URL = 'https://cdn.jsdelivr.net/gh/jamespatrickjackson-lang/Html_Demo_001@main/Gums.glb';
+const TEETH_URL = 'https://cdn.jsdelivr.net/gh/jamespatrickjackson-lang/Html_Demo_001@main/Theeth.glb';
+
+console.log('URLs configured:');
+console.log(' Gums:', GUMS_URL);
+console.log(' Teeth:', TEETH_URL);
+
+// Store original positions for reset functionality
+let originalGumsPosition = new THREE.Vector3();
+let originalTeethPosition = new THREE.Vector3();
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ENHANCED SPLINE POSITIONING TO TOUCH TOOTH MODEL
+   ═══════════════════════════════════════════════════════════════════════════════ */
+Promise.all([
+    new Promise((resolve, reject) => {
+        loader.load(GUMS_URL, resolve, undefined, reject);
+    }),
+    new Promise((resolve, reject) => {
+        loader.load(TEETH_URL, resolve, undefined, reject);
+    })
+]).then(([gumsGltf, teethGltf]) => {
+    console.log('🎉 Both models loaded successfully!');
+
+    // Hide placeholder teeth when real models are loaded
+    targetGroup.visible = false;
+
+    // Calculate unified scaling factor based on the teeth model
+    const teethBox = new THREE.Box3().setFromObject(teethGltf.scene);
+    const teethSize = teethBox.getSize(new THREE.Vector3());
+    const teethMaxDim = Math.max(teethSize.x, teethSize.y, teethSize.z);
+    const unifiedScale = 6 / teethMaxDim;
+
+    console.log(`📏 Unified scale factor: ${unifiedScale}`);
+
+    // Process Gums with unified scaling and 30% more transparency
+    gumsModel = gumsGltf.scene;
+    gumsModel.scale.set(unifiedScale, unifiedScale, unifiedScale);
+
+    // Center the gums model
+    const gumsBox = new THREE.Box3().setFromObject(gumsModel);
+    const gumsCenter = gumsBox.getCenter(new THREE.Vector3());
+    gumsModel.position.sub(gumsCenter.multiplyScalar(unifiedScale));
+
+    gumsModel.traverse((child) => {
+        if (child.isMesh) {
+            const originalMat = child.material.clone();
+            child.material = new THREE.MeshPhysicalMaterial({
+                map: originalMat.map,
+                color: originalMat.color,
+                transparent: true,
+                opacity: 0.56,
+                transmission: 0,
+                roughness: 0.2,
+                metalness: 0.0,
+                clearcoat: 0.5,
+                clearcoatRoughness: 0.2,
+                reflectivity: 0.5,
+                ior: 1.5,
+                specularIntensity: 0.5,
+                envMapIntensity: 1.0,
+                side: THREE.DoubleSide
+            });
+            child.material.needsUpdate = true;
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
+    });
+
+    glbModelsGroup.add(gumsModel);
+    console.log('✅ Gums model processed and added with 30% more transparency');
+
+    // Process Teeth with the SAME unified scaling
+    teethModel = teethGltf.scene;
+    teethModel.scale.set(unifiedScale, unifiedScale, unifiedScale);
+
+    // Center the teeth model using the same approach
+    const teethBox2 = new THREE.Box3().setFromObject(teethModel);
+    const teethCenter = teethBox2.getCenter(new THREE.Vector3());
+    teethModel.position.sub(teethCenter.multiplyScalar(unifiedScale));
+
+    /* ════════════════════════════════════════════════════════════════════════════
+       CRITICAL FIX: MOVE TEETH MESH -0.015 IN Z DIRECTION AND MAKE IT GLASS-LIKE
+       ════════════════════════════════════════════════════════════════════════════ */
+    console.log('🎯 Moving teeth mesh -0.015 units in Z direction and applying glass material...');
+
+    // Move the entire teeth model -0.015 units in the Z direction
+    teethModel.position.z -= 0.015;
+
+    // Enhanced glass material for imported teeth - 20% more opaque (from 0.4 to 0.48) and 10% gray
+    const glassMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xE8E8E8, // 10% gray - lighter gray color (was 0xf8f8ff)
+        transparent: true,
+        opacity: 0.48, // 20% more opaque (was 0.4, now 0.48)
+        transmission: 0.8, // Light transmission for glass
+        roughness: 0.1, // Smooth surface
+        metalness: 0.0, // Non-metallic
+        clearcoat: 1.0, // Clear coating for glass-like reflection
+        clearcoatRoughness: 0.1,
+        reflectivity: 1.0,
+        ior: 1.5, // Index of refraction for glass
+        specularIntensity: 1.0,
+        envMapIntensity: 1.0,
+        side: THREE.DoubleSide
+    });
+
+    teethModel.traverse((child) => {
+        if (child.isMesh) {
+            // Replace material with enhanced glass material
+            child.material = glassMaterial.clone();
+            child.material.needsUpdate = true;
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
+    });
+
+    glbModelsGroup.add(teethModel);
+    console.log('✅ Teeth model processed with glass material, moved -0.015 in Z direction, no outline, 20% more opaque, and 10% gray');
+
+    // Final adjustment to position the entire group correctly in the scene
+    const combinedBox = new THREE.Box3().setFromObject(glbModelsGroup);
+    const combinedCenter = combinedBox.getCenter(new THREE.Vector3());
+    glbModelsGroup.position.sub(combinedCenter);
+
+    // Store original positions for reset functionality
+    originalGumsPosition.copy(gumsModel.position);
+    originalTeethPosition.copy(teethModel.position);
+
+    /* ════════════════════════════════════════════════════════════════════════════
+       CRITICAL FIX: FLIP MODELS TO POSITION TEETH ON TOP
+       ════════════════════════════════════════════════════════════════════════════ */
+    console.log('🔄 Flipping models to position teeth on top of gums...');
+
+    // Rotate 180 degrees around Z-axis to flip the models
+    glbModelsGroup.rotation.z = Math.PI;
+
+    // Also rotate around Y-axis to face the correct direction
+    glbModelsGroup.rotation.y = Math.PI;
+
+    // Adjust position to ensure proper alignment after flipping
+    glbModelsGroup.position.y += 0.5;
+
+    console.log('✅ Models flipped - teeth should now be on top of gums');
+
+    /* ════════════════════════════════════════════════════════════════════════════
+       ENHANCED SPLINE POSITIONING: TOUCH TOOTH MODEL WITH 60% TOTAL REDUCED WIDTH
+       ════════════════════════════════════════════════════════════════════════════ */
+    console.log('🎯 Repositioning spline to touch tooth model with 60% total reduced width...');
+
+    // Calculate the dimensions and position of the tooth model after all transformations
+    const finalTeethBox = new THREE.Box3().setFromObject(glbModelsGroup);
+    const finalTeethSize = finalTeethBox.getSize(new THREE.Vector3());
+    const finalTeethCenter = finalTeethBox.getCenter(new THREE.Vector3());
+
+    console.log(`📏 Final tooth model dimensions: ${finalTeethSize.x.toFixed(2)} x ${finalTeethSize.y.toFixed(2)} x ${finalTeethSize.z.toFixed(2)}`);
+    console.log(`📍 Final tooth model center: (${finalTeethCenter.x.toFixed(2)}, ${finalTeethCenter.y.toFixed(2)}, ${finalTeethCenter.z.toFixed(2)})`);
+
+    // Calculate spline dimensions to match the tooth arch
+    // Use 90% of tooth model depth for optimal fit
+    // TOTAL 60% REDUCTION: 90% * 0.4 = 36% of original width
+    const targetSplineWidth = finalTeethSize.x * 0.90 * 0.4; // 60% total reduction
+    const targetSplineDepth = finalTeethSize.z * 0.90;
+
+    // Calculate spline height to touch the occlusal surfaces
+    // Position spline at the top of the teeth (occlusal plane)
+    const splineHeight = finalTeethBox.max.y - (finalTeethSize.y * 0.15);
+
+    console.log(`🎯 Target spline dimensions: ${targetSplineWidth.toFixed(2)} x ${targetSplineDepth.toFixed(2)}`);
+    console.log(`📐 Spline height (occlusal plane): ${splineHeight.toFixed(2)}`);
+    console.log(`📉 Spline width reduced by 60% total from ${(finalTeethSize.x * 0.90).toFixed(2)} to ${targetSplineWidth.toFixed(2)}`);
+
+    // Create new spline positioned to touch the teeth
+    railPath = createUShapedPath(targetSplineWidth, targetSplineDepth, splineHeight);
+
+    // Update rail visualization (will be hidden)
+    createRailVisualization();
+
+    // Update total arc length for camera calculations
+    totalArcLength = railPath.getLength();
+
+    /* ════════════════════════════════════════════════════════════════════════════
+       MARKER REPOSITIONING: Advanced positioning
+       ════════════════════════════════════════════════════════════════════════════ */
+    console.log('🎯 Repositioning markers with advanced positioning...');
+
+    if (redSphere && purpleBlock && originalTooth31Position) {
+        // Find the closest point on the new spline to the original tooth #31 position
+        let closestT = 0;
+        let minDistance = Infinity;
+
+        // Sample the spline to find the closest parameter
+        for (let t = 0; t <= 1; t += 0.01) {
+            const point = railPath.getPoint(t);
+            const distance = point.distanceTo(originalTooth31Position);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestT = t;
+            }
+        }
+
+        // Move markers 0.02 path distance units along the spline
+        const newT = closestT + 0.02;
+        const newMarkerPosition = railPath.getPoint(newT);
+        const tangent = railPath.getTangent(newT).normalize();
+
+        // Calculate center direction
+        const center = new THREE.Vector3(0, 0, 0);
+        const toCenter = new THREE.Vector3().subVectors(center, newMarkerPosition).normalize();
+
+        // REPOSITION RED SPHERE:
+        // Move 30% towards ground and 10% towards center
+        const redFinalPosition = newMarkerPosition.clone();
+
+        // 30% towards ground (floor is at y=-1)
+        const groundY = -1;
+        const currentToGround = groundY - redFinalPosition.y;
+        redFinalPosition.y += currentToGround * 0.30;
+
+        // 10% towards center
+        redFinalPosition.add(toCenter.clone().multiplyScalar(newMarkerPosition.distanceTo(center) * 0.10));
+
+        redSphere.position.copy(redFinalPosition);
+
+        // REPOSITION PURPLE BLOCK:
+        // Move 10% towards ground and 10% towards center
+        const purpleFinalPosition = newMarkerPosition.clone();
+
+        // 10% towards ground
+        const purpleToGround = groundY - purpleFinalPosition.y;
+        purpleFinalPosition.y += purpleToGround * 0.10;
+
+        // 10% towards center
+        purpleFinalPosition.add(toCenter.clone().multiplyScalar(newMarkerPosition.distanceTo(center) * 0.10));
+
+        // Additional 10% movement (as requested)
+        purpleFinalPosition.add(toCenter.clone().multiplyScalar(newMarkerPosition.distanceTo(center) * 0.10));
+
+        purpleBlock.position.copy(purpleFinalPosition);
+
+        console.log('✅ Markers repositioned: red sphere 30% down/10% center, purple block 10% down/20% center');
+    }
+
+    console.log('✅ Spline repositioned to touch tooth model with 60% reduced width');
+    console.log('🎊 ALL VISUAL OPTIMIZATIONS COMPLETE!');
+
+    // Initialize variable panel after models are loaded
+    initVariablePanel();
+
+}).catch((error) => {
+    console.log('⚠️ Model loading failed:', error.message);
+    console.log('📝 Error details:', error);
+    console.log('✅ Placeholder teeth remain visible as fallback');
+    document.getElementById('loading-indicator').style.display = 'none';
+});
+
+// Additional scene objects
+const centerGeometry = new THREE.SphereGeometry(0.05, 16, 16);
+const centerMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
+centerPoint = new THREE.Mesh(centerGeometry, centerMaterial);
+centerPoint.castShadow = true;
+centerPoint.visible = false; // MAKE GRAY BALL INVISIBLE
+scene.add(centerPoint);
+
+const floorGeometry = new THREE.PlaneGeometry(500, 500);
+const floorMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+floor = new THREE.Mesh(floorGeometry, floorMaterial);
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = -1;
+floor.receiveShadow = true;
+scene.add(floor);
+
+const gridHelperGeometry = new THREE.GridHelper(10, 10, 0xcccccc, 0xe0e0e0);
+gridHelper = gridHelperGeometry;
+gridHelper.position.y = -0.99;
+gridHelper.visible = false;
+scene.add(gridHelper);
+
+// Camera control variables
+let pathParameter = 0.5;
+let orbitAngle = 160 * Math.PI / 180;
+let cameraDistance = 5;
+
+const minOrbitAngle = -3 * Math.PI / 180;
+const maxOrbitAngle = Math.PI;
+
+const trackSpeed = 0.0008;
+const orbitSpeed = 0.005;
+const zoomSpeed = 0.1;
+const pinchZoomSpeed = 0.01;
+
+let isDragging = false;
+let clickWasDrag = false;
+let previousMouseX = 0;
+let previousMouseY = 0;
+let previousPinchDistance = 0;
+
+// Label state
+let redSphereLabelVisible = false;
+let purpleBlockLabelVisible = false;
+
+// Position adjustment state
+let selectedModel = 'gums'; // 'gums', 'teeth', or 'both'
+
+// Variable adjustment state
+let selectedObject = null;
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   POSITION ADJUSTMENT FUNCTIONALITY
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+// Initialize position panel
+function initPositionPanel() {
+    const modelButtons = document.querySelectorAll('.model-btn');
+    const axisInputs = document.querySelectorAll('.axis-input');
+    const resetBtn = document.getElementById('reset-position');
+    const positionBtn = document.getElementById('position-btn');
+    const positionPanel = document.getElementById('position-panel');
+
+    // Model selection
+    modelButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            modelButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedModel = btn.dataset.model;
+            updatePositionInputs();
+        });
+    });
+
+    // Axis input changes
+    axisInputs.forEach(input => {
+        input.addEventListener('input', () => {
+            updateModelPosition(
+                parseFloat(document.getElementById('pos-x').value) || 0,
+                parseFloat(document.getElementById('pos-y').value) || 0,
+                parseFloat(document.getElementById('pos-z').value) || 0
+            );
+        });
+
+        // Allow arrow key navigation with step values
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const step = parseFloat(input.step) || 0.001;
+                input.value = (parseFloat(input.value) || 0) + step;
+                updateModelPosition(
+                    parseFloat(document.getElementById('pos-x').value) || 0,
+                    parseFloat(document.getElementById('pos-y').value) || 0,
+                    parseFloat(document.getElementById('pos-z').value) || 0
+                );
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const step = parseFloat(input.step) || 0.001;
+                input.value = (parseFloat(input.value) || 0) - step;
+                updateModelPosition(
+                    parseFloat(document.getElementById('pos-x').value) || 0,
+                    parseFloat(document.getElementById('pos-y').value) || 0,
+                    parseFloat(document.getElementById('pos-z').value) || 0
+                );
+            }
+        });
+    });
+
+    // Reset position
+    resetBtn.addEventListener('click', () => {
+        resetModelPositions();
+    });
+
+    // Toggle position panel with button
+    positionBtn.addEventListener('click', () => {
+        togglePositionPanel();
+    });
+
+    // Initialize input values
+    updatePositionInputs();
+}
+
+// Toggle position panel visibility
+function togglePositionPanel() {
+    const positionPanel = document.getElementById('position-panel');
+    const positionBtn = document.getElementById('position-btn');
+
+    if (positionPanel.style.display === 'none' || positionPanel.style.display === '') {
+        positionPanel.style.display = 'block';
+        positionBtn.classList.add('active');
+    } else {
+        positionPanel.style.display = 'none';
+        positionBtn.classList.remove('active');
+    }
+}
+
+// Update model positions based on input values
+function updateModelPosition(x, y, z) {
+    if (!gumsModel || !teethModel) return;
+
+    const newPosition = new THREE.Vector3(x, y, z);
+
+    switch (selectedModel) {
+        case 'gums':
+            gumsModel.position.copy(newPosition);
+            break;
+        case 'teeth':
+            teethModel.position.copy(newPosition);
+            break;
+        case 'both':
+            gumsModel.position.copy(newPosition);
+            teethModel.position.copy(newPosition);
+            break;
+    }
+}
+
+// Update input fields with current position
+function updatePositionInputs() {
+    if (!gumsModel || !teethModel) return;
+
+    let currentPosition;
+    switch (selectedModel) {
+        case 'gums':
+            currentPosition = gumsModel.position;
+            break;
+        case 'teeth':
+            currentPosition = teethModel.position;
+            break;
+        case 'both':
+            // For "both", show gums position (they should be the same when both is selected)
+            currentPosition = gumsModel.position;
+            break;
+    }
+
+    document.getElementById('pos-x').value = currentPosition.x.toFixed(3);
+    document.getElementById('pos-y').value = currentPosition.y.toFixed(3);
+    document.getElementById('pos-z').value = currentPosition.z.toFixed(3);
+}
+
+// Reset model positions to original
+function resetModelPositions() {
+    if (!gumsModel || !teethModel) return;
+
+    gumsModel.position.copy(originalGumsPosition);
+    teethModel.position.copy(originalTeethPosition);
+    updatePositionInputs();
+}
+
+// Initialize position panel when models are ready
+setTimeout(initPositionPanel, 1000);
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   VARIABLE ADJUSTMENT FUNCTIONALITY
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+// Initialize variable panel
+function initVariablePanel() {
+    const objectButtons = document.querySelectorAll('.object-btn');
+    const variableBtn = document.getElementById('variable-btn');
+    const variablePanel = document.getElementById('variable-panel');
+
+    // Object selection
+    objectButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            objectButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedObject = btn.dataset.object;
+            loadVariableControls(selectedObject);
+        });
+    });
+
+    // Toggle variable panel with button
+    variableBtn.addEventListener('click', () => {
+        toggleVariablePanel();
+    });
+
+    // Load initial controls for first object
+    if (objectButtons.length > 0) {
+        objectButtons[0].click();
+    }
+}
+
+// Toggle variable panel visibility
+function toggleVariablePanel() {
+    const variablePanel = document.getElementById('variable-panel');
+    const variableBtn = document.getElementById('variable-btn');
+
+    if (variablePanel.style.display === 'none' || variablePanel.style.display === '') {
+        variablePanel.style.display = 'block';
+        variableBtn.classList.add('active');
+    } else {
+        variablePanel.style.display = 'none';
+        variableBtn.classList.remove('active');
+    }
+}
+
+// Load variable controls for selected object
+function loadVariableControls(objectType) {
+    const controlsContainer = document.getElementById('variable-controls');
+    controlsContainer.innerHTML = '';
+
+    switch (objectType) {
+        case 'gums-model':
+            createGumsModelControls(controlsContainer);
+            break;
+        case 'teeth-model':
+            createTeethModelControls(controlsContainer);
+            break;
+        case 'tooth-objects':
+            createToothObjectsControls(controlsContainer);
+            break;
+        case 'tooth-labels':
+            createToothLabelsControls(controlsContainer);
+            break;
+        case 'target-group':
+            createTargetGroupControls(controlsContainer);
+            break;
+        case 'purple-block':
+            createPurpleBlockControls(controlsContainer);
+            break;
+        case 'red-sphere':
+            createRedSphereControls(controlsContainer);
+            break;
+        case 'backdrop-sphere':
+            createBackdropSphereControls(controlsContainer);
+            break;
+        case 'floor-plane':
+            createFloorPlaneControls(controlsContainer);
+            break;
+        case 'grid-helper':
+            createGridHelperControls(controlsContainer);
+            break;
+        case 'rail-path':
+            createRailPathControls(controlsContainer);
+            break;
+        case 'center-point':
+            createCenterPointControls(controlsContainer);
+            break;
+    }
+}
+
+// Helper function to create variable controls
+function createVariableControl(container, groupName, controls) {
+    const group = document.createElement('div');
+    group.className = 'variable-group';
+
+    const header = document.createElement('div');
+    header.className = 'group-header';
+    header.textContent = groupName;
+    group.appendChild(header);
+
+    controls.forEach(control => {
+        const controlDiv = document.createElement('div');
+        controlDiv.className = 'variable-control';
+
+        const label = document.createElement('div');
+        label.className = 'variable-label';
+        label.textContent = control.label;
+        controlDiv.appendChild(label);
+
+        let input;
+
+        switch (control.type) {
+            case 'number':
+                input = document.createElement('input');
+                input.type = 'number';
+                input.className = 'variable-input';
+                input.value = control.value;
+                input.step = control.step || 0.001;
+                if (control.id) input.id = selectedObject + '-' + control.id;
+                input.addEventListener('input', control.onChange);
+                controlDiv.appendChild(input);
+                break;
+
+            case 'color':
+                input = document.createElement('input');
+                input.type = 'color';
+                input.className = 'color-input';
+                input.value = control.value;
+                if (control.id) input.id = selectedObject + '-' + control.id;
+                input.addEventListener('input', control.onChange);
+                controlDiv.appendChild(input);
+                break;
+
+            case 'slider':
+                const sliderContainer = document.createElement('div');
+                sliderContainer.className = 'slider-container';
+
+                input = document.createElement('input');
+                input.type = 'range';
+                input.className = 'slider';
+                input.min = control.min || 0;
+                input.max = control.max || 1;
+                input.step = control.step || 0.01;
+                input.value = control.value;
+                if (control.id) input.id = selectedObject + '-' + control.id;
+
+                const valueDisplay = document.createElement('span');
+                valueDisplay.className = 'slider-value';
+                valueDisplay.textContent = parseFloat(control.value).toFixed(2);
+                if (control.id) valueDisplay.id = selectedObject + '-' + control.id + '-display';
+
+                input.addEventListener('input', (e) => {
+                    valueDisplay.textContent = parseFloat(e.target.value).toFixed(2);
+                    control.onChange(e);
+                });
+
+                sliderContainer.appendChild(input);
+                sliderContainer.appendChild(valueDisplay);
+                controlDiv.appendChild(sliderContainer);
+                break;
+
+            case 'toggle':
+                const toggleContainer = document.createElement('label');
+                toggleContainer.className = 'toggle-switch';
+
+                input = document.createElement('input');
+                input.type = 'checkbox';
+                input.checked = control.value;
+                if (control.id) input.id = selectedObject + '-' + control.id;
+                input.addEventListener('change', control.onChange);
+
+                const slider = document.createElement('span');
+                slider.className = 'toggle-slider';
+
+                toggleContainer.appendChild(input);
+                toggleContainer.appendChild(slider);
+                controlDiv.appendChild(toggleContainer);
+                break;
+        }
+
+        group.appendChild(controlDiv);
+    });
+
+    container.appendChild(group);
+}
+
+// Gums Model Controls
+function createGumsModelControls(container) {
+    if (!gumsModel) return;
+
+    let mat;
+    gumsModel.traverse(child => {
+        if (child.isMesh) {
+            mat = child.material;
+            return;
+        }
+    });
+    if (!mat) return;
+
+    const hsl = {};
+    mat.color.getHSL(hsl);
+
+    createVariableControl(container, 'Base Color', [
+        {
+            label: 'Color',
+            type: 'color',
+            value: '#' + mat.color.getHexString(),
+            id: 'base-color',
+            onChange: (e) => {
+                const newColor = new THREE.Color(e.target.value);
+                gumsModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.material.color.copy(newColor);
+                    }
+                });
+                const newHsl = {};
+                newColor.getHSL(newHsl);
+                const hueEl = document.getElementById('gums-model-hue');
+                if (hueEl) hueEl.value = newHsl.h;
+                const hueDisp = document.getElementById('gums-model-hue-display');
+                if (hueDisp) hueDisp.textContent = newHsl.h.toFixed(2);
+                const satEl = document.getElementById('gums-model-sat');
+                if (satEl) satEl.value = newHsl.s;
+                const satDisp = document.getElementById('gums-model-sat-display');
+                if (satDisp) satDisp.textContent = newHsl.s.toFixed(2);
+            }
+        },
+        {
+            label: 'Hue',
+            type: 'slider',
+            min: 0,
+            max: 1,
+            step: 0.01,
+            value: hsl.h,
+            id: 'hue',
+            onChange: (e) => {
+                const val = parseFloat(e.target.value);
+                gumsModel.traverse(child => {
+                    if (child.isMesh) {
+                        const chsl = {};
+                        child.material.color.getHSL(chsl);
+                        child.material.color.setHSL(val, chsl.s, chsl.l);
+                    }
+                });
+                const newColor = new THREE.Color().copy(mat.color);
+                const colorEl = document.getElementById('gums-model-base-color');
+                if (colorEl) colorEl.value = '#' + newColor.getHexString();
+            }
+        },
+        {
+            label: 'Saturation',
+            type: 'slider',
+            min: 0,
+            max: 1,
+            step: 0.01,
+            value: hsl.s,
+            id: 'sat',
+            onChange: (e) => {
+                const val = parseFloat(e.target.value);
+                gumsModel.traverse(child => {
+                    if (child.isMesh) {
+                        const chsl = {};
+                        child.material.color.getHSL(chsl);
+                        child.material.color.setHSL(chsl.h, val, chsl.l);
+                    }
+                });
+                const newColor = new THREE.Color().copy(mat.color);
+                const colorEl = document.getElementById('gums-model-base-color');
+                if (colorEl) colorEl.value = '#' + newColor.getHexString();
+            }
+        }
+    ]);
+
+    createVariableControl(container, 'Surface Reflection', [
+        {
+            label: 'Reflectivity',
+            type: 'slider',
+            min: 0,
+            max: 1,
+            step: 0.01,
+            value: mat.reflectivity || 0,
+            onChange: (e) => {
+                const val = parseFloat(e.target.value);
+                gumsModel.traverse(child => {
+                    if (child.isMesh && 'reflectivity' in child.material) {
+                        child.material.reflectivity = val;
+                    }
+                });
+            }
+        },
+        {
+            label: 'Roughness',
+            type: 'slider',
+            min: 0,
+            max: 1,
+            step: 0.01,
+            value: mat.roughness || 0,
+            onChange: (e) => {
+                const val = parseFloat(e.target.value);
+                gumsModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.material.roughness = val;
+                    }
+                });
+            }
+        },
+        {
+            label: 'Clearcoat',
+            type: 'slider',
+            min: 0,
+            max: 1,
+            step: 0.01,
+            value: mat.clearcoat || 0,
+            onChange: (e) => {
+                const val = parseFloat(e.target.value);
+                gumsModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.material.clearcoat = val;
+                    }
+                });
+            }
+        }
+    ]);
+
+    createVariableControl(container, 'Transparency & Refraction', [
+        {
+            label: 'Opacity',
+            type: 'slider',
+            min: 0,
+            max: 1,
+            step: 0.01,
+            value: mat.opacity,
+            onChange: (e) => {
+                const val = parseFloat(e.target.value);
+                gumsModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.material.opacity = val;
+                    }
+                });
+            }
+        },
+        {
+            label: 'Transmission',
+            type: 'slider',
+            min: 0,
+            max: 1,
+            step: 0.01,
+            value: mat.transmission || 0,
+            onChange: (e) => {
+                const val = parseFloat(e.target.value);
+                gumsModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.material.transmission = val;
+                    }
+                });
+            }
+        },
+        {
+            label: 'IOR',
+            type: 'slider',
+            min: 1.0,
+            max: 2.5,
+            step: 0.1,
+            value: mat.ior || 1.5,
+            onChange: (e) => {
+                const val = parseFloat(e.target.value);
+                gumsModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.material.ior = val;
+                    }
+                });
+            }
+        }
+    ]);
+
+    createVariableControl(container, 'Visibility', [
+        {
+            label: 'Visible',
+            type: 'toggle',
+            value: gumsModel.visible,
+            onChange: (e) => {
+                gumsModel.visible = e.target.checked;
+            }
+        },
+        {
+            label: 'Cast Shadow',
+            type: 'toggle',
+            value: true,
+            onChange: (e) => {
+                gumsModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.castShadow = e.target.checked;
+                    }
+                });
+            }
+        },
+        {
+            label: 'Receive Shadow',
+            type: 'toggle',
+            value: true,
+            onChange: (e) => {
+                gumsModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.receiveShadow = e.target.checked;
+                    }
+                });
+            }
+        }
+    ]);
+}
+
+// Teeth Model Controls
+function createTeethModelControls(container) {
+    if (!teethModel) return;
+
+    let mat;
+    teethModel.traverse(child => {
+        if (child.isMesh) {
+            mat = child.material;
+            return;
+        }
+    });
+    if (!mat) return;
+
+    const hsl = {};
+    mat.color.getHSL(hsl);
+
+    createVariableControl(container, 'Base Color', [
+        {
+            label: 'Color',
+            type: 'color',
+            value: '#' + mat.color.getHexString(),
+            id: 'base-color',
+            onChange: (e) => {
+                const newColor = new THREE.Color(e.target.value);
+                teethModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.material.color.copy(newColor);
+                    }
+                });
+            }
+        },
+        {
+            label: 'Hue',
+            type: 'slider',
+            min: 0,
+            max: 1,
+            step: 0.01,
+            value: hsl.h,
+            id: 'hue',
+            onChange: (e) => {
+                const val = parseFloat(e.target.value);
+                teethModel.traverse(child => {
+                    if (child.isMesh) {
+                        const chsl = {};
+                        child.material.color.getHSL(chsl);
+                        child.material.color.setHSL(val, chsl.s, chsl.l);
+                    }
+                });
+            }
+        },
+        {
+            label: 'Saturation',
+            type: 'slider',
+            min: 0,
+            max: 1,
+            step: 0.01,
+            value: hsl.s,
+            id: 'sat',
+            onChange: (e) => {
+                const val = parseFloat(e.target.value);
+                teethModel.traverse(child => {
+                    if (child.isMesh) {
+                        const chsl = {};
+                        child.material.color.getHSL(chsl);
+                        child.material.color.setHSL(chsl.h, val, chsl.l);
+                    }
+                });
+            }
+        }
+    ]);
+
+    createVariableControl(container, 'Surface Reflection', [
+        {
+            label: 'Reflectivity',
+            type: 'slider',
+            min: 0,
+            max: 1,
+            step: 0.01,
+            value: mat.reflectivity || 0,
+            onChange: (e) => {
+                const val = parseFloat(e.target.value);
+                teethModel.traverse(child => {
+                    if (child.isMesh && 'reflectivity' in child.material) {
+                        child.material.reflectivity = val;
+                    }
+                });
+            }
+        },
+        {
+            label: 'Roughness',
+            type: 'slider',
+            min: 0,
+            max: 1,
+            step: 0.01,
+            value: mat.roughness || 0,
+            onChange: (e) => {
+                const val = parseFloat(e.target.value);
+                teethModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.material.roughness = val;
+                    }
+                });
+            }
+        },
+        {
+            label: 'Clearcoat',
+            type: 'slider',
+            min: 0,
+            max: 1,
+            step: 0.01,
+            value: mat.clearcoat || 0,
+            onChange: (e) => {
+                const val = parseFloat(e.target.value);
+                teethModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.material.clearcoat = val;
+                    }
+                });
+            }
+        }
+    ]);
+
+    createVariableControl(container, 'Transparency & Refraction', [
+        {
+            label: 'Opacity',
+            type: 'slider',
+            min: 0,
+            max: 1,
+            step: 0.01,
+            value: mat.opacity,
+            onChange: (e) => {
+                const val = parseFloat(e.target.value);
+                teethModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.material.opacity = val;
+                    }
+                });
+            }
+        },
+        {
+            label: 'Transmission',
+            type: 'slider',
+            min: 0,
+            max: 1,
+            step: 0.01,
+            value: mat.transmission || 0,
+            onChange: (e) => {
+                const val = parseFloat(e.target.value);
+                teethModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.material.transmission = val;
+                    }
+                });
+            }
+        },
+        {
+            label: 'IOR',
+            type: 'slider',
+            min: 1.0,
+            max: 2.5,
+            step: 0.1,
+            value: mat.ior || 1.5,
+            onChange: (e) => {
+                const val = parseFloat(e.target.value);
+                teethModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.material.ior = val;
+                    }
+                });
+            }
+        }
+    ]);
+
+    createVariableControl(container, 'Visibility', [
+        {
+            label: 'Visible',
+            type: 'toggle',
+            value: teethModel.visible,
+            onChange: (e) => {
+                teethModel.visible = e.target.checked;
+            }
+        },
+        {
+            label: 'Cast Shadow',
+            type: 'toggle',
+            value: true,
+            onChange: (e) => {
+                teethModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.castShadow = e.target.checked;
+                    }
+                });
+            }
+        },
+        {
+            label: 'Receive Shadow',
+            type: 'toggle',
+            value: true,
+            onChange: (e) => {
+                teethModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.receiveShadow = e.target.checked;
+                    }
+                });
+            }
+        }
+    ]);
+}
+
+// Tooth Objects Controls
+function createToothObjectsControls(container) {
+    if (!targetGroup || targetGroup.children.length === 0) return;
+
+    const mat = targetGroup.children[0].material;
+    const hsl = {};
+    mat.color.getHSL(hsl);
+
+    createVariableControl(container, 'Appearance', [
+        {
+            label: 'Color',
+            type: 'color',
+            value: '#' + mat.color.getHexString(),
+            onChange: (e) => {
+                const newColor = new THREE.Color(e.target.value);
+                targetGroup.children.forEach(tooth => {
+                    tooth.material.color.copy(newColor);
+                });
+            }
+        },
+        {
+            label: 'Opacity',
+            type: 'slider',
+            min: 0,
+            max: 1,
+            step: 0.01,
+            value: mat.opacity,
+            onChange: (e) => {
+                const val = parseFloat(e.target.value);
+                targetGroup.children.forEach(tooth => {
+                    tooth.material.opacity = val;
+                });
+            }
+        }
+    ]);
+
+    createVariableControl(container, 'Visibility', [
+        {
+            label: 'Visible',
+            type: 'toggle',
+            value: targetGroup.visible,
+            onChange: (e) => {
+                targetGroup.visible = e.target.checked;
+            }
+        },
+        {
+            label: 'Wireframe',
+            type: 'toggle',
+            value: true,
+            onChange: (e) => {
+                targetGroup.children.forEach(tooth => {
+                    tooth.children.forEach(child => {
+                        if (child.isLineSegments) {
+                            child.visible = e.target.checked;
+                        }
+                    });
+                });
+            }
+        }
+    ]);
+}
+
+// Tooth Labels Controls
+function createToothLabelsControls(container) {
+    if (!toothLabelsGroup) return;
+
+    createVariableControl(container, 'Text Properties', [
+        {
+            label: 'Text Color',
+            type: 'color',
+            value: labelTextColor,
+            onChange: (e) => {
+                labelTextColor = e.target.value;
+                createToothLabels();
+            }
+        },
+        {
+            label: 'Text Size',
+            type: 'slider',
+            min: 20,
+            max: 100,
+            step: 5,
+            value: labelTextSize,
+            onChange: (e) => {
+                labelTextSize = parseFloat(e.target.value);
+                createToothLabels();
+            }
+        }
+    ]);
+
+    createVariableControl(container, 'Background', [
+        {
+            label: 'BG Color',
+            type: 'color',
+            value: labelBgColor,
+            onChange: (e) => {
+                labelBgColor = e.target.value;
+                createToothLabels();
+            }
+        },
+        {
+            label: 'BG Opacity',
+            type: 'slider',
+            min: 0,
+            max: 1,
+            step: 0.05,
+            value: labelBgOpacity,
+            onChange: (e) => {
+                labelBgOpacity = parseFloat(e.target.value);
+                createToothLabels();
+            }
+        }
+    ]);
+
+    createVariableControl(container, 'Visibility', [
+        {
+            label: 'Visible',
+            type: 'toggle',
+            value: toothLabelsGroup.visible,
+            onChange: (e) => {
+                toothLabelsGroup.visible = e.target.checked;
+            }
+        }
+    ]);
+}
+
+// Target Group Controls
+function createTargetGroupControls(container) {
+    if (!targetGroup) return;
+
+    createVariableControl(container, 'Visibility', [
+        {
+            label: 'Visible',
+            type: 'toggle',
+            value: targetGroup.visible,
+            onChange: (e) => {
+                targetGroup.visible = e.target.checked;
+            }
+        }
+    ]);
+}
+
+// Purple Block Controls
+function createPurpleBlockControls(container) {
+    if (!purpleBlock) return;
+
+    createVariableControl(container, 'Appearance', [
+        {
+            label: 'Color',
+            type: 'color',
+            value: '#' + purpleBlock.material.color.getHexString(),
+            onChange: (e) => {
+                purpleBlock.material.color.set(e.target.value);
+            }
+        }
+    ]);
+
+    createVariableControl(container, 'Visibility', [
+        {
+            label: 'Visible',
+            type: 'toggle',
+            value: purpleBlock.visible,
+            onChange: (e) => {
+                purpleBlock.visible = e.target.checked;
+            }
+        },
+        {
+            label: 'Cast Shadow',
+            type: 'toggle',
+            value: purpleBlock.castShadow,
+            onChange: (e) => {
+                purpleBlock.castShadow = e.target.checked;
+            }
+        }
+    ]);
+}
+
+// Red Sphere Controls
+function createRedSphereControls(container) {
+    if (!redSphere) return;
+
+    createVariableControl(container, 'Appearance', [
+        {
+            label: 'Color',
+            type: 'color',
+            value: '#' + redSphere.material.color.getHexString(),
+            onChange: (e) => {
+                redSphere.material.color.set(e.target.value);
+            }
+        }
+    ]);
+
+    createVariableControl(container, 'Visibility', [
+        {
+            label: 'Visible',
+            type: 'toggle',
+            value: redSphere.visible,
+            onChange: (e) => {
+                redSphere.visible = e.target.checked;
+            }
+        },
+        {
+            label: 'Cast Shadow',
+            type: 'toggle',
+            value: redSphere.castShadow,
+            onChange: (e) => {
+                redSphere.castShadow = e.target.checked;
+            }
+        }
+    ]);
+}
+
+// Backdrop Sphere Controls
+function createBackdropSphereControls(container) {
+    if (!backdropSphere) return;
+
+    createVariableControl(container, 'Appearance', [
+        {
+            label: 'Color',
+            type: 'color',
+            value: '#' + backdropSphere.material.color.getHexString(),
+            onChange: (e) => {
+                backdropSphere.material.color.set(e.target.value);
+            }
+        }
+    ]);
+
+    createVariableControl(container, 'Visibility', [
+        {
+            label: 'Visible',
+            type: 'toggle',
+            value: backdropSphere.visible,
+            onChange: (e) => {
+                backdropSphere.visible = e.target.checked;
+            }
+        }
+    ]);
+}
+
+// Floor Plane Controls
+function createFloorPlaneControls(container) {
+    if (!floor) return;
+
+    createVariableControl(container, 'Appearance', [
+        {
+            label: 'Color',
+            type: 'color',
+            value: '#' + floor.material.color.getHexString(),
+            onChange: (e) => {
+                floor.material.color.set(e.target.value);
+            }
+        }
+    ]);
+
+    createVariableControl(container, 'Visibility', [
+        {
+            label: 'Visible',
+            type: 'toggle',
+            value: floor.visible,
+            onChange: (e) => {
+                floor.visible = e.target.checked;
+            }
+        },
+        {
+            label: 'Receive Shadow',
+            type: 'toggle',
+            value: floor.receiveShadow,
+            onChange: (e) => {
+                floor.receiveShadow = e.target.checked;
+            }
+        }
+    ]);
+}
+
+// Grid Helper Controls
+function createGridHelperControls(container) {
+    if (!gridHelper) return;
+
+    createVariableControl(container, 'Visibility', [
+        {
+            label: 'Visible',
+            type: 'toggle',
+            value: gridHelper.visible,
+            onChange: (e) => {
+                gridHelper.visible = e.target.checked;
+            }
+        }
+    ]);
+}
+
+// Rail Path Controls
+function createRailPathControls(container) {
+    if (!pathTube) return;
+
+    createVariableControl(container, 'Appearance', [
+        {
+            label: 'Color',
+            type: 'color',
+            value: '#' + pathTube.material.color.getHexString(),
+            onChange: (e) => {
+                pathTube.material.color.set(e.target.value);
+                if (startCap) startCap.material.color.set(e.target.value);
+                if (endCap) endCap.material.color.set(e.target.value);
+            }
+        }
+    ]);
+
+    createVariableControl(container, 'Visibility', [
+        {
+            label: 'Visible',
+            type: 'toggle',
+            value: pathTube.visible,
+            onChange: (e) => {
+                pathTube.visible = e.target.checked;
+                if (startCap) startCap.visible = e.target.checked;
+                if (endCap) endCap.visible = e.target.checked;
+            }
+        }
+    ]);
+}
+
+// Center Point Controls
+function createCenterPointControls(container) {
+    if (!centerPoint) return;
+
+    createVariableControl(container, 'Appearance', [
+        {
+            label: 'Color',
+            type: 'color',
+            value: '#' + centerPoint.material.color.getHexString(),
+            onChange: (e) => {
+                centerPoint.material.color.set(e.target.value);
+            }
+        }
+    ]);
+
+    createVariableControl(container, 'Visibility', [
+        {
+            label: 'Visible',
+            type: 'toggle',
+            value: centerPoint.visible,
+            onChange: (e) => {
+                centerPoint.visible = e.target.checked;
+            }
+        }
+    ]);
+}
+
+// Keyboard controls
+document.addEventListener('keydown', (e) => {
+    // Toggle position panel with 'P' key
+    if (e.key === 'p' || e.key === 'P') {
+        e.preventDefault();
+        togglePositionPanel();
+    }
+
+    // Toggle variable panel with 'M' key
+    if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        toggleVariablePanel();
+    }
+});
+
+// Raycaster
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+// Label positioning
+function updateLabelPositions() {
+    if (redSphere && redSphereLabelVisible && redSphere.visible) {
+        const screenPos = redSphere.position.clone();
+        screenPos.project(camera);
+
+        const x = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (screenPos.y * -0.5 + 0.5) * window.innerHeight;
+
+        const label = document.getElementById('red-sphere-label');
+        label.style.left = x + 'px';
+        label.style.top = (y - 40) + 'px';
+        label.style.display = 'block';
+    } else {
+        document.getElementById('red-sphere-label').style.display = 'none';
+    }
+
+    if (purpleBlock && purpleBlockLabelVisible && purpleBlock.visible) {
+        const screenPos = purpleBlock.position.clone();
+        screenPos.project(camera);
+
+        const x = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (screenPos.y * -0.5 + 0.5) * window.innerHeight;
+
+        const label = document.getElementById('purple-block-label');
+        label.style.left = x + 'px';
+        label.style.top = (y - 40) + 'px';
+        label.style.display = 'block';
+    } else {
+        document.getElementById('purple-block-label').style.display = 'none';
+    }
+}
+
+// Mouse controls
+renderer.domElement.addEventListener('mousedown', e => {
+    isDragging = true;
+    clickWasDrag = false;
+    previousMouseX = e.clientX;
+    previousMouseY = e.clientY;
+});
+
+renderer.domElement.addEventListener('mousemove', e => {
+    if (isDragging) {
+        const deltaX = e.clientX - previousMouseX;
+        const deltaY = e.clientY - previousMouseY;
+
+        if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
+            clickWasDrag = true;
+        }
+
+        pathParameter -= deltaX * trackSpeed;
+        pathParameter = Math.max(0, Math.min(1, pathParameter));
+
+        orbitAngle -= deltaY * orbitSpeed;
+        orbitAngle = Math.max(minOrbitAngle, Math.min(maxOrbitAngle, orbitAngle));
+
+        previousMouseX = e.clientX;
+        previousMouseY = e.clientY;
+    }
+});
+
+renderer.domElement.addEventListener('mouseup', e => {
+    if (!clickWasDrag && redSphere && purpleBlock) {
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects([redSphere, purpleBlock]);
+
+        if (intersects.length > 0) {
+            const clickedObject = intersects[0].object;
+
+            if (clickedObject === redSphere) {
+                redSphereLabelVisible = !redSphereLabelVisible;
+            } else if (clickedObject === purpleBlock) {
+                purpleBlockLabelVisible = !purpleBlockLabelVisible;
+            }
+        }
+    }
+
+    isDragging = false;
+});
+
+// Touch controls
+function getTouchDistance(t1, t2) {
+    const dx = t1.clientX - t2.clientX;
+    const dy = t1.clientY - t2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+renderer.domElement.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+        isDragging = true;
+        previousMouseX = e.touches[0].clientX;
+        previousMouseY = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+        isDragging = false;
+        previousPinchDistance = getTouchDistance(e.touches[0], e.touches[1]);
+    }
+});
+
+renderer.domElement.addEventListener('touchmove', e => {
+    e.preventDefault();
+
+    if (e.touches.length === 1 && isDragging) {
+        const deltaX = e.touches[0].clientX - previousMouseX;
+        const deltaY = e.touches[0].clientY - previousMouseY;
+
+        pathParameter -= deltaX * trackSpeed;
+        pathParameter = Math.max(0, Math.min(1, pathParameter));
+
+        orbitAngle -= deltaY * orbitSpeed;
+        orbitAngle = Math.max(minOrbitAngle, Math.min(maxOrbitAngle, orbitAngle));
+
+        previousMouseX = e.touches[0].clientX;
+        previousMouseY = e.touches[0].clientY;
+
+    } else if (e.touches.length === 2) {
+        const currentPinchDistance = getTouchDistance(e.touches[0], e.touches[1]);
+        const pinchDelta = currentPinchDistance - previousPinchDistance;
+
+        cameraDistance -= pinchDelta * pinchZoomSpeed;
+        cameraDistance = Math.max(1, Math.min(12, cameraDistance));
+
+        previousPinchDistance = currentPinchDistance;
+    }
+});
+
+renderer.domElement.addEventListener('touchend', e => {
+    if (e.touches.length === 0) {
+        isDragging = false;
+        previousPinchDistance = 0;
+    } else if (e.touches.length === 1) {
+        isDragging = true;
+        previousMouseX = e.touches[0].clientX;
+        previousMouseY = e.touches[0].clientY;
+    }
+});
+
+// Mouse wheel zoom
+renderer.domElement.addEventListener('wheel', e => {
+    e.preventDefault();
+
+    cameraDistance += e.deltaY * zoomSpeed * 0.01;
+    cameraDistance = Math.max(1, Math.min(12, cameraDistance));
+});
+
+// Button controls
+const purpleBtn = document.getElementById('purple-btn');
+const redBtn = document.getElementById('red-btn');
+const labelsBtn = document.getElementById('labels-btn');
+const gridBtn = document.getElementById('grid-btn');
+
+if (purpleBtn && purpleBlock) {
+    purpleBtn.addEventListener('click', () => {
+        purpleBlock.visible = !purpleBlock.visible;
+        purpleBtn.classList.toggle('active');
+        if (!purpleBlock.visible) {
+            document.getElementById('purple-block-label').style.display = 'none';
+            purpleBlockLabelVisible = false;
+        }
+    });
+}
+
+if (redBtn && redSphere) {
+    redBtn.addEventListener('click', () => {
+        redSphere.visible = !redSphere.visible;
+        redBtn.classList.toggle('active');
+        if (!redSphere.visible) {
+            document.getElementById('red-sphere-label').style.display = 'none';
+            redSphereLabelVisible = false;
+        }
+    });
+}
+
+if (labelsBtn) {
+    labelsBtn.addEventListener('click', () => {
+        toothLabelsGroup.visible = !toothLabelsGroup.visible;
+        labelsBtn.classList.toggle('active');
+    });
+}
+
+if (gridBtn) {
+    gridBtn.addEventListener('click', () => {
+        gridHelper.visible = !gridHelper.visible;
+        gridBtn.classList.toggle('active');
+    });
+}
+
+// Camera update function
+function updateCamera() {
+    const targetPosition = railPath.getPoint(pathParameter);
+    const tangent = railPath.getTangent(pathParameter).normalize();
+
+    const archCenter = new THREE.Vector3(0, 0, 0);
+    const outwardRadial = new THREE.Vector3()
+        .subVectors(targetPosition, archCenter)
+        .normalize();
+
+    const tangentDot = outwardRadial.dot(tangent);
+    const outward = new THREE.Vector3()
+        .copy(outwardRadial)
+        .addScaledVector(tangent, -tangentDot)
+        .normalize();
+
+    const upDirection = new THREE.Vector3()
+        .crossVectors(tangent, outward)
+        .normalize();
+
+    const actualOrbitAngle = orbitAngle + Math.PI;
+    const cosOrbit = Math.cos(actualOrbitAngle);
+    const sinOrbit = Math.sin(actualOrbitAngle);
+
+    const orbitOffset = new THREE.Vector3()
+        .addScaledVector(outward, cosOrbit)
+        .addScaledVector(upDirection, sinOrbit);
+
+    const cameraPosition = new THREE.Vector3()
+        .copy(targetPosition)
+        .addScaledVector(orbitOffset, cameraDistance);
+
+    camera.position.copy(cameraPosition);
+    camera.lookAt(targetPosition);
+
+    const worldUp = new THREE.Vector3(0, 1, 0);
+    const cameraUp = new THREE.Vector3()
+        .addScaledVector(worldUp, cosOrbit)
+        .addScaledVector(tangent.clone().cross(worldUp).normalize(), sinOrbit);
+    camera.up.copy(cameraUp);
+
+    centerPoint.position.copy(targetPosition);
+
+    const orbitDegrees = Math.round(orbitAngle * 180 / Math.PI);
+    document.getElementById('orbit-display').textContent = orbitDegrees + '°';
+    document.getElementById('path-display').textContent = pathParameter.toFixed(2);
+    document.getElementById('zoom-display').textContent = cameraDistance.toFixed(2);
+
+    updateLabelPositions();
+}
+
+// Animation loop
+function animate() {
+    requestAnimationFrame(animate);
+    updateCamera();
+    renderer.render(scene, camera);
+}
+
+// Window resize
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Start
+animate();
+
+console.log('🚀 Fuji Navigation Mode - Rev 5.8.7 Clean Successfully Loaded!');
+console.log('✨ IMPROVEMENTS: Enhanced toggle switches, better spacing, polished UI/UX');
+</script>
+</body>
+</html>
