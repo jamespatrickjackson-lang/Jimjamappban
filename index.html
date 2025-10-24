@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Fuji Navigation Mode - Rev 5.8.7 Clean</title>
+    <title>Fuji Navigation Mode - Rev 5.8.8 Normal Controls</title>
     <style>
         /* ═══════════════════════════════════════════════════════════════════
            BASE STYLES
@@ -791,7 +791,7 @@
     <div class="control-item"><span class="key">P KEY</span> - Toggle position panel</div>
     <div class="control-item"><span class="key">M KEY</span> - Toggle variable panel</div>
 </div>
-<div id="version">Rev 5.8.7 Clean - Variable Adjustment Panel</div>
+<div id="version">Rev 5.8.8 - Normal Controls Added</div>
 <div id="debug-info">
     <div class="debug-row">
         <span class="debug-label">Orbit:</span>
@@ -850,8 +850,8 @@
 <!-- GLTFLoader for loading .glb files -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
-console.log('🚀 Fuji Navigation Mode - Rev 5.8.7 Clean starting...');
-console.log('🔧 MODIFICATIONS: Cleaned up variable adjustment panel with improved toggle switches');
+console.log('🚀 Fuji Navigation Mode - Rev 5.8.8 Normal Controls starting...');
+console.log('🔧 MODIFICATIONS: Added comprehensive normal controls to fix inside-out models');
 
 // Scene setup
 const scene = new THREE.Scene();
@@ -2011,6 +2011,71 @@ function createGumsModelControls(container) {
         }
     ]);
 
+    createVariableControl(container, 'Normals & Rendering', [
+        {
+            label: 'Recompute Normals',
+            type: 'toggle',
+            value: false,
+            onChange: (e) => {
+                gumsModel.traverse(child => {
+                    if (child.isMesh && child.geometry) {
+                        if (e.target.checked) {
+                            child.geometry.computeVertexNormals();
+                        }
+                    }
+                });
+            }
+        },
+        {
+            label: 'Flip Normals',
+            type: 'toggle',
+            value: false,
+            onChange: (e) => {
+                gumsModel.traverse(child => {
+                    if (child.isMesh && child.geometry && child.geometry.attributes.normal) {
+                        const normals = child.geometry.attributes.normal;
+                        const multiplier = e.target.checked ? -1 : 1;
+                        for (let i = 0; i < normals.count; i++) {
+                            normals.setXYZ(i,
+                                normals.getX(i) * multiplier,
+                                normals.getY(i) * multiplier,
+                                normals.getZ(i) * multiplier
+                            );
+                        }
+                        normals.needsUpdate = true;
+                    }
+                });
+            }
+        },
+        {
+            label: 'Flat Shading',
+            type: 'toggle',
+            value: false,
+            onChange: (e) => {
+                gumsModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.material.flatShading = e.target.checked;
+                        child.material.needsUpdate = true;
+                    }
+                });
+            }
+        },
+        {
+            label: 'Render Side',
+            type: 'toggle',
+            value: true,
+            onChange: (e) => {
+                gumsModel.traverse(child => {
+                    if (child.isMesh) {
+                        // Toggle between DoubleSide (true) and FrontSide (false)
+                        child.material.side = e.target.checked ? THREE.DoubleSide : THREE.FrontSide;
+                        child.material.needsUpdate = true;
+                    }
+                });
+            }
+        }
+    ]);
+
     createVariableControl(container, 'Visibility', [
         {
             label: 'Visible',
@@ -2214,6 +2279,71 @@ function createTeethModelControls(container) {
                 teethModel.traverse(child => {
                     if (child.isMesh) {
                         child.material.ior = val;
+                    }
+                });
+            }
+        }
+    ]);
+
+    createVariableControl(container, 'Normals & Rendering', [
+        {
+            label: 'Recompute Normals',
+            type: 'toggle',
+            value: false,
+            onChange: (e) => {
+                teethModel.traverse(child => {
+                    if (child.isMesh && child.geometry) {
+                        if (e.target.checked) {
+                            child.geometry.computeVertexNormals();
+                        }
+                    }
+                });
+            }
+        },
+        {
+            label: 'Flip Normals',
+            type: 'toggle',
+            value: false,
+            onChange: (e) => {
+                teethModel.traverse(child => {
+                    if (child.isMesh && child.geometry && child.geometry.attributes.normal) {
+                        const normals = child.geometry.attributes.normal;
+                        const multiplier = e.target.checked ? -1 : 1;
+                        for (let i = 0; i < normals.count; i++) {
+                            normals.setXYZ(i,
+                                normals.getX(i) * multiplier,
+                                normals.getY(i) * multiplier,
+                                normals.getZ(i) * multiplier
+                            );
+                        }
+                        normals.needsUpdate = true;
+                    }
+                });
+            }
+        },
+        {
+            label: 'Flat Shading',
+            type: 'toggle',
+            value: false,
+            onChange: (e) => {
+                teethModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.material.flatShading = e.target.checked;
+                        child.material.needsUpdate = true;
+                    }
+                });
+            }
+        },
+        {
+            label: 'Render Side',
+            type: 'toggle',
+            value: true,
+            onChange: (e) => {
+                teethModel.traverse(child => {
+                    if (child.isMesh) {
+                        // Toggle between DoubleSide (true) and FrontSide (false)
+                        child.material.side = e.target.checked ? THREE.DoubleSide : THREE.FrontSide;
+                        child.material.needsUpdate = true;
                     }
                 });
             }
@@ -2880,8 +3010,8 @@ window.addEventListener('resize', () => {
 // Start
 animate();
 
-console.log('🚀 Fuji Navigation Mode - Rev 5.8.7 Clean Successfully Loaded!');
-console.log('✨ IMPROVEMENTS: Enhanced toggle switches, better spacing, polished UI/UX');
+console.log('🚀 Fuji Navigation Mode - Rev 5.8.8 Successfully Loaded!');
+console.log('✨ NEW FEATURE: Normal controls - Recompute, Flip, Flat Shading, Render Side');
 </script>
 </body>
 </html>
